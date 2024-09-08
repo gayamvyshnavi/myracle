@@ -5,77 +5,162 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Testing Instructions Generator</title>
     <style>
-        .preview-img {
-            max-width: 200px;
-            margin: 10px;
-            display: inline-block;
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
         }
-        #imagePreview {
-            display: flex;
-            flex-wrap: wrap;
+
+        .container {
+            width: 80%;
+            margin: 50px auto;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            font-size: 2rem;
+        }
+
+        form {
+            margin-top: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 10px;
+            font-size: 1rem;
+            color: #333;
+        }
+
+        input[type="file"], textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
             margin-bottom: 20px;
+            font-size: 1rem;
+        }
+
+        textarea {
+            resize: vertical;
+            height: 150px;
+        }
+
+        button {
+            display: inline-block;
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            font-size: 1rem;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        .preview {
+            margin-top: 20px;
+        }
+
+        .preview img {
+            width: 150px;
+            margin-right: 10px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .instructions {
+            margin-top: 20px;
+            padding: 20px;
+            background-color: #eaf6ff;
+            border-left: 5px solid #007bff;
+            border-radius: 5px;
+        }
+
+        .instructions pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-size: 1rem;
         }
     </style>
 </head>
 <body>
-    <h1>Testing Instructions Generator</h1>
-    
-    <!-- Form to upload images and provide optional context -->
-    <form id="uploadForm">
-        <label for="context">Optional Context:</label>
-        <textarea id="context" name="context" rows="4" cols="50"></textarea>
-        <br><br>
-        <label for="screenshots">Upload Screenshots:</label>
-        <input type="file" id="screenshots" name="screenshots" multiple accept="image/*" required>
-        <br><br>
-        <button type="submit">Describe Testing Instructions</button>
-    </form>
-    
-    <!-- Container to display image previews -->
-    <div id="imagePreview"></div>
-    
-    <!-- Container to display the generated instructions -->
-    <h2>Generated Testing Instructions:</h2>
-    <pre id="instructions"></pre>
+
+    <div class="container">
+        <h1>Generate Testing Instructions</h1>
+        
+        <form id="upload-form" enctype="multipart/form-data">
+            <label for="context">Optional Context:</label>
+            <textarea id="context" name="context" placeholder="Enter any additional context (optional)"></textarea>
+
+            <label for="screenshots">Upload Screenshots:</label>
+            <input type="file" id="screenshots" name="screenshots" multiple accept="image/png, image/jpeg">
+
+            <button type="submit">Describe Testing Instructions</button>
+        </form>
+
+        <div class="preview" id="preview">
+            <!-- Image previews will appear here -->
+        </div>
+
+        <div class="instructions" id="instructions">
+            <!-- Testing instructions will appear here -->
+        </div>
+    </div>
 
     <script>
-        document.getElementById('uploadForm').addEventListener('submit', async function(event) {
-            event.preventDefault();
-
-            const formData = new FormData(this);
-            const response = await fetch('/generate-instructions', {
-                method: 'POST',
-                body: formData
-            });
-
-            if (response.ok) {
-                const result = await response.json();
-                document.getElementById('instructions').textContent = result.instructions;
-            } else {
-                document.getElementById('instructions').textContent = 'Failed to generate instructions.';
-            }
-        });
-
         document.getElementById('screenshots').addEventListener('change', function(event) {
-            const files = event.target.files;
-            const imagePreviewDiv = document.getElementById('imagePreview');
-            
-            imagePreviewDiv.innerHTML = '';
+            const previewDiv = document.getElementById('preview');
+            previewDiv.innerHTML = '';  // Clear previous images
 
+            const files = event.target.files;
             for (let i = 0; i < files.length; i++) {
                 const file = files[i];
                 if (file.type.startsWith('image/')) {
-                    const reader = new FileReader();
-                    reader.onload = function(event) {
-                        const img = document.createElement('img');
-                        img.src = event.target.result;
-                        img.className = 'preview-img';
-                        imagePreviewDiv.appendChild(img);
-                    };
-                    reader.readAsDataURL(file);
+                    const imgElement = document.createElement('img');
+                    imgElement.src = URL.createObjectURL(file);
+                    previewDiv.appendChild(imgElement);
                 }
             }
         });
+
+        document.getElementById('upload-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+            
+            const formData = new FormData();
+            const context = document.getElementById('context').value;
+            const files = document.getElementById('screenshots').files;
+
+            formData.append('context', context);
+            for (let i = 0; i < files.length; i++) {
+                formData.append('screenshots', files[i]);
+            }
+
+            fetch('/generate-instructions', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                const instructionsDiv = document.getElementById('instructions');
+                instructionsDiv.innerHTML = `<pre>${data.instructions}</pre>`;
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        });
     </script>
+
 </body>
 </html>
